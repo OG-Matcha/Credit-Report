@@ -5,3 +5,11 @@ requests
 langchain
 langchain-community
 langchain-core
+langchain-openai
+reportlab
+pytesseract
+SpeechRecognition
+fastembed
+python-dotenv
+pypdf
+faiss-cpu

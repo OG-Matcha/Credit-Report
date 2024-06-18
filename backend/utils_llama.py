@@ -1,7 +1,8 @@
 import uuid
 import os
+import pytesseract
+import speech_recognition as sr
 from langchain_community.document_loaders import PyPDFLoader
-from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import FastEmbedEmbeddings
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet
@@ -9,6 +10,35 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
 from datetime import date
 from langchain_community.chat_models import ChatOllama
 from langchain_core.prompts import PromptTemplate
+from langchain_community.vectorstores import FAISS
+from dotenv import load_dotenv
+from PIL import Image
+
+
+class FAISSIndexer:
+    def __init__(self):
+        load_dotenv()
+        self.embeddings = FastEmbedEmbeddings()  # 使用 FastEmbedEmbeddings 代替 OpenAIEmbeddings
+
+    def load_documents(self, documents_path="C:/Credit-Report/documents/"):
+        documents = []
+        for filename in os.listdir(documents_path):
+            if filename.endswith(".pdf"):
+                loader = PyPDFLoader(os.path.join(documents_path, filename))
+                pages = loader.load_and_split()
+                documents.extend(page.page_content for page in pages)
+        return documents
+
+    def build_faiss_index(self, documents, save_path="/faiss_index"):
+        # 建立 FAISS 索引
+        docsearch = FAISS.from_texts(documents, self.embeddings)
+
+        # 保存索引到本地
+        docsearch.save_local(save_path)
+        print(f"FAISS index saved to {save_path}")
+
+    def load_faiss_index(self, save_path="/faiss_index"):
+        return FAISS.load_local(save_path, self.embeddings, allow_dangerous_deserialization=True)
 
 promptTemplate = """Answer the question as precise as possible using the provided context. If the answer is
 not contained in the context, say "answer not available in context." \n\n
@@ -64,29 +94,32 @@ questions_prompts = {
     ]
 }
 
-def extract_text_from_pdf(filePath):
-    loader = PyPDFLoader(filePath)
-    pages = loader.load_and_split()
-    return pages  # 返回Page对象的列表
+
+def extract_text_from_image(filePath):
+    image = Image.open(filePath)
+    text = pytesseract.image_to_string(image)
+    print(text)
+    return [text]
+
+def extract_texts_from_pdfs(filePaths):
+    all_texts = []
+    for filePath in filePaths:
+        loader = PyPDFLoader(filePath)
+        pages = loader.load_and_split()
+        all_texts.extend([page.page_content for page in pages])
+    return all_texts
+
 
 def initialize_retriever():
-    pdf_paths = [
-        r"C:\RAG_Financial_BOT\Loan default prediction LLM\臺企銀解題資源1_授信準則全文.pdf",
-        r"C:\RAG_Financial_BOT\Loan default prediction LLM\臺企銀解題資源2_授信準則全文.pdf",
-        r"C:\RAG_Financial_BOT\Loan default prediction LLM\銀行徵信實務-蕭敦仁.pdf",
-        r"C:\RAG_Financial_BOT\Loan default prediction LLM\徵信準則全文11207.pdf",
-        r"C:\RAG_Financial_BOT\Loan default prediction LLM\Accounting and non-accounting determinants of default-An analysis of private-held firms-JAPP (2010).pdf",
-        r"C:\RAG_Financial_BOT\Loan default prediction LLM\Predicting corporate bankruptcy-What matters-Li and Faff-IREF (2019).pdf",
-        r"C:\RAG_Financial_BOT\Loan default prediction LLM\Predicting corporate financial failure using macroeconomic variables and accounting data-Acosta-Gonzalez et al-CE (2017).pdf",
-        r"C:\RAG_Financial_BOT\Loan default prediction LLM\如何閱讀當事人綜合信用報告.pdf"
-    ]
-    default_documents = []
-    for path in pdf_paths:
-        pages = extract_text_from_pdf(path)
-        default_documents.extend(pages)
+    indexer = FAISSIndexer()
 
-    vector_store = Chroma.from_documents(documents=default_documents, embedding=FastEmbedEmbeddings())
-    return vector_store.as_retriever()
+
+    if not os.path.exists("/faiss_index"):
+        documents = indexer.load_documents()
+        indexer.build_faiss_index(documents)
+    docsearch = indexer.load_faiss_index()
+
+    return docsearch.as_retriever(search_type='similarity', search_kwargs={'k': 3})
 
 def generate_report(context, company_name, retriever):
     report = []
@@ -96,7 +129,7 @@ def generate_report(context, company_name, retriever):
         question = question_template.format(company_name=company_name)
         results = retriever.get_relevant_documents(question)  # 查询RAG
         context_from_rag = "\n".join([result.page_content for result in results])
-        
+
         if context_from_rag:
             full_context = f"{context}\n{context_from_rag}"
         else:
@@ -108,7 +141,7 @@ def generate_report(context, company_name, retriever):
         content = llm_response.content
 
         report.append(f"Question: {question}\nAnswer: {content}\n\n")
-        
+
     return "\n".join(report)
 
 def save_to_pdf1(data, directory):
@@ -119,25 +152,25 @@ def save_to_pdf1(data, directory):
 
     doc = SimpleDocTemplate(file_path, pagesize=letter)
     styles = getSampleStyleSheet()
-    
+
     title_style = styles['Title']
     title_style.alignment = 1  # 设置居中对齐
-    
+
     heading_style = styles['Heading2']
     heading_style.spaceAfter = 12
-    
+
     body_style = styles['BodyText']
     body_style.spaceAfter = 12
-    
+
     story = []
-    
-    story.append(Paragraph(f"Credit Analysis Report", title_style))
+
+    story.append(Paragraph("Credit Analysis Report", title_style))
     story.append(Spacer(1, 24))
     story.append(Paragraph(f"Company Name: {data['company_name']}", body_style))
     story.append(Spacer(1, 12))
     story.append(Paragraph(f"Report Date: {date.today().strftime('%Y-%m-%d')}", body_style))
     story.append(PageBreak())
-    
+
     lines = data['report'].split("\n")
     for line in lines:
         if line.startswith("Question:"):
@@ -147,7 +180,7 @@ def save_to_pdf1(data, directory):
         else:
             story.append(Paragraph(line, body_style))
         story.append(Spacer(1, 12))
-    
+
     def add_page_footer(canvas, doc):
         canvas.saveState()
         footer = Paragraph("Credit Analysis Report - %d " % doc.page, styles['Normal'])
