@@ -1,7 +1,7 @@
 import os
 import uuid
 from flask import Flask, request, jsonify, send_file
-from backend.utils_llama import extract_texts_from_pdfs ,extract_text_from_image, initialize_retriever, generate_report, save_to_pdf1
+from utils_llama import extract_texts_from_pdfs ,extract_text_from_image, initialize_retriever, generate_report, save_to_pdf1
 
 app = Flask(__name__)
 
