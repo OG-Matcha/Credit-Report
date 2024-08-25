@@ -36,6 +36,7 @@ with gr.Blocks() as build:
     company_input = gr.Textbox(label="公司名稱", placeholder="輸入公司名稱")
     pdf_input = gr.Files(label="上傳PDF文件", type="binary")
     image_input = gr.Files(label="上傳圖片文件", type="binary")
+    audio_input = gr.Files(label="上傳音頻文件", type="binary")
     upload_button = gr.Button("上傳文件")
     clear_button = gr.Button("清除文件")
     outputs = gr.HTML(label="下載")

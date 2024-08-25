@@ -40,57 +40,55 @@ class FAISSIndexer:
     def load_faiss_index(self, save_path="/faiss_index"):
         return FAISS.load_local(save_path, self.embeddings, allow_dangerous_deserialization=True)
 
-promptTemplate = """Answer the question as precise as possible using the provided context. If the answer is
-not contained in the context, say "answer not available in context." \n\n
-Context: {context}
-Question: {question}
-Answer:
+promptTemplate = """請使用提供的上下文盡可能精確地回答問題。如果答案不在文件中，請回答「文件中無答案」。\n\n
+上下文: {context}
+問題: {question}
+答案:
 """
 
-
 questions_prompts = {
-    "1. Industry Analysis": [
-        "1.1 Please provide the domestic production and sales value overview of {company_name}.",
-        "1.2 Please provide the monthly sales volume changes of screws and nuts for {company_name}.",
-        "1.3 Please provide the operational performance of {company_name}.",
-        "1.4 Please provide the price trend of upstream raw materials for {company_name}.",
-        "1.5 Please provide the economic outlook for {company_name}."
+    "1. 產業分析": [
+        "1.1 請提供{company_name}的國內生產與銷售價值概覽。",
+        "1.2 請提供{company_name}螺絲與螺帽的月銷售量變化。",
+        "1.3 請提供{company_name}的營運表現。",
+        "1.4 請提供{company_name}上游原材料的價格趨勢。",
+        "1.5 請提供{company_name}的經濟展望。"
     ],
-    "2. Shareholder and Team Analysis": [
-        "2.1 Please provide information on the major shareholders of {company_name}.",
-        "2.2 Please provide the organizational structure of the group of {company_name}."
+    "2. 股東與團隊分析": [
+        "2.1 請提供{company_name}主要股東的資訊。",
+        "2.2 請提供{company_name}集團的組織結構。"
     ],
-    "3. Operational Analysis": [
-        "3.1 Please provide the revenue and profit analysis of {company_name}.",
-        "3.2 Please provide the sales customer analysis of {company_name}.",
-        "3.3 Please provide the supplier analysis of {company_name}.",
-        "3.4 Please provide the transaction process of {company_name}."
+    "3. 營運分析": [
+        "3.1 請提供{company_name}的收入與利潤分析。",
+        "3.2 請提供{company_name}的銷售客戶分析。",
+        "3.3 請提供{company_name}的供應商分析。",
+        "3.4 請提供{company_name}的交易過程。"
     ],
-    "4. Financial Analysis": [
-        "4.1 Please provide the financial structure of {company_name}.",
-        "4.2 Please provide the operational efficiency of {company_name}.",
-        "4.3 Please provide the long-term investments of {company_name}.",
-        "4.4 Please provide the related party transactions of {company_name}.",
-        "4.5 Please provide the cash flow analysis of {company_name}."
+    "4. 財務分析": [
+        "4.1 請提供{company_name}的財務結構。",
+        "4.2 請提供{company_name}的營運效率。",
+        "4.3 請提供{company_name}的長期投資。",
+        "4.4 請提供{company_name}的關聯方交易。",
+        "4.5 請提供{company_name}的現金流量分析。"
     ],
-    "5. Related Interviews": [
-        "5.1 Please provide the plant location, environment, product, and technical advantages of {company_name}.",
-        "5.2 Please provide the production process, machinery and equipment, and capacity utilization rate of {company_name}.",
-        "5.3 Please provide the inventory scale of {company_name}.",
-        "5.4 Please provide the order status of {company_name}.",
-        "5.5 Please provide the exchange rate and country risk of {company_name}."
+    "5. 相關訪談": [
+        "5.1 請提供{company_name}的廠房位置、環境、產品和技術優勢。",
+        "5.2 請提供{company_name}的生產過程、機械設備和產能利用率。",
+        "5.3 請提供{company_name}的庫存規模。",
+        "5.4 請提供{company_name}的訂單狀況。",
+        "5.5 請提供{company_name}的匯率和國家風險。"
     ],
-    "6. Banking Relations": [
-        "6.1 Please provide the deposit information of {company_name}.",
-        "6.2 Please provide the loan or guarantee information of {company_name}.",
-        "6.3 Please provide the loan balance units for the past six months and the past three years of {company_name}.",
-        "6.4 Please provide the query frequency in the credit reporting center for the past three months for {company_name}.",
-        "6.5 Please provide other credit investigation information of {company_name}.",
-        "6.6 Please provide the leasing transactions of {company_name}.",
-        "6.7 Please provide the derivative financial products transactions of {company_name}."
+    "6. 銀行關係": [
+        "6.1 請提供{company_name}的存款資訊。",
+        "6.2 請提供{company_name}的貸款或擔保資訊。",
+        "6.3 請提供{company_name}過去六個月和過去三年的貸款餘額單位。",
+        "6.4 請提供{company_name}過去三個月在信用報告中心的查詢頻率。",
+        "6.5 請提供{company_name}的其他信用調查資訊。",
+        "6.6 請提供{company_name}的租賃交易。",
+        "6.7 請提供{company_name}的衍生金融產品交易。"
     ],
-    "7. Financial Statements": [
-        "7.1 Please provide the latest financial statements of {company_name}."
+    "7. 財務報表": [
+        "7.1 請提供{company_name}最新的財務報表。"
     ]
 }
 
